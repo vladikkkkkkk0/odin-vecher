@@ -519,13 +519,13 @@ function credits(){const s=el('div');s.id='sheet';const i=el('div','in',`<h4>Ч�
   const c=el('button','','Закрыть');c.type='button';c.onclick=()=>s.remove();i.append(c);s.append(i);s.onclick=e=>{if(e.target===s)s.remove()};app.append(s);c.focus()}
 /* Обложка */
 function cover(){const back=saveGet();track('open');Object.assign(S,{name:'',t0:0,pen:0,stop:null,img:null,out:[],wrong:0,formerWorker:0});$('clock').firstChild.nodeValue='00:00';$('top').classList.add('off');cap.textContent='';ui.innerHTML='';clearHot();hush();
-  const l=layer('wall',{cls:'fade'});mood({img:'wall',t:'#e7b98f',pct:0});prune(l);
+  const ad=SRC&&!back,art=ad?'ad_room':'wall';const l=layer(art,{cls:'fade'});mood({img:art,t:'#e7b98f',pct:0});prune(l);
   const c=el('div');c.id='cover';c.innerHTML=`<div class="brand"><span class="pegs" aria-hidden="true"><u></u><u></u><u></u><u></u></span>Один вечер в истории</div>
   ${FRIEND?`<div class="dare"><b>${esc(RIVAL.name)}: ${mmss(RIVAL.sec)}. Сможешь быстрее?</b>${DARE.demo?'<small>Пример вызова от друга</small>':''}</div>`:''}
   <h1>${['Кто украл','Мону Лизу'].map((w,i)=>`<span class="line"><span style="--i:${i}">${w}</span></span>`).join('')}</h1>
-  <p>${back?'Вы остановились у сундука. Дело раскрыто на 94%.':'Полиция не нашла её за 2 года. Сможешь за 10 минут?'}</p>`;
-  PEGS.forEach((p,i)=>{const g=el('i','glint'),[x,y]=map(p[0],p[1]);g.style.cssText=`left:${x}px;top:${y}px;--i:${i}`;ui.append(g)});
-  const b=el('button','main',back?'Вернуться к сундуку':FRIEND?'Принять вызов':'Начать расследование');b.type='button';
+  <p>${back?'Вы остановились у сундука. Дело раскрыто на 94%.':ad?'Полиция стояла здесь дважды. Найдёшь её за 10 минут?':'Полиция не нашла её за 2 года. Сможешь за 10 минут?'}</p>`;
+  if(!ad)PEGS.forEach((p,i)=>{const g=el('i','glint'),[x,y]=map(p[0],p[1]);g.style.cssText=`left:${x}px;top:${y}px;--i:${i}`;ui.append(g)});
+  const b=el('button','main',back?'Вернуться к сундуку':FRIEND?'Принять вызов':ad?'Обыскать комнату':'Начать расследование');b.type='button';
   const go=f=>{soundOn();c.classList.add('out');ui.querySelectorAll('.glint').forEach(g=>g.remove());$('top').classList.remove('off');setTimeout(()=>c.remove(),460);f()};
   b.onclick=()=>go(()=>{if(back){S.name=back.name;S.stop=Date.now();S.t0=S.stop-back.sec*1000;track('resume');cut({img:'cloth',t:'#ea9a86',when:'Сентябрь 1911',pct:.94}).then(climax)}else{const u=TG&&TG.initDataUnsafe.user;if(u)S.name=u.last_name||u.first_name||'';track('start');game()}});
   c.append(b);if(back){const r=el('button','quiet','Начать заново');r.type='button';r.onclick=()=>{savePut(null);cover()};c.append(r)}ui.append(c)}
