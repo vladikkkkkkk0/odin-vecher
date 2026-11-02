@@ -250,7 +250,10 @@ const W=941,H=1672,PEGS=[[33.4,30.2],[66.7,30.2],[33.4,53.65],[66.7,53.65]];
 const TG=window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.initData?window.Telegram.WebApp:null;
 const BOT="odinvecher_bot",APP="game",API="https://odin-vecher-bot.odinvecher.workers.dev",LOG_URL="https://odin-vecher-bot.odinvecher.workers.dev/event",STARS=75;
 if(TG){TG.ready();TG.expand();try{TG.disableVerticalSwipes&&TG.disableVerticalSwipes()}catch(_){}}
-const track=(ev,data)=>{if(!LOG_URL)return;try{navigator.sendBeacon(LOG_URL,JSON.stringify({ev,t:Date.now(),user:TG&&TG.initDataUnsafe.user&&TG.initDataUnsafe.user.id,...data}))}catch(_){}};
+/* Метка рекламы приходит в ссылке (startapp=src_gram) и запоминается: человек может купить не в первый заход */
+const SRC=(()=>{const m=/^src_([a-z0-9]{1,16})$/.exec((TG&&TG.initDataUnsafe.start_param)||'');try{if(m)localStorage.setItem('odin-src',m[1]);return localStorage.getItem('odin-src')||''}catch(_){return m?m[1]:''}})();
+const beacon=(ev,data)=>{try{navigator.sendBeacon(LOG_URL,JSON.stringify({ev,t:Date.now(),user:TG&&TG.initDataUnsafe.user&&TG.initDataUnsafe.user.id,...data}))}catch(_){}};
+const track=(ev,data)=>{if(!LOG_URL)return;beacon(ev,data);if(SRC&&/^(open|paywall|pay_ok)$/.test(ev))beacon(`s_${SRC}_${ev}`)};
 /* С рекламы соперник один: цель в 10 минут. Друг появляется только по его ссылке */
 function readDare(){const m=/^v_(\d+)_([\w-]+)$/.exec((TG&&TG.initDataUnsafe.start_param)||'');
   if(m)try{return {name:decodeURIComponent(escape(atob(m[2].replace(/-/g,'+').replace(/_/g,'/')))),sec:+m[1]}}catch(_){}
