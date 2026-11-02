@@ -26,7 +26,7 @@
   --pad-l:max(20px,env(safe-area-inset-left,0px));
   --pad-r:max(20px,env(safe-area-inset-right,0px));
 }
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 body{background:var(--black);color:var(--white);font-family:var(--text);user-select:none;-webkit-user-select:none}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
@@ -94,11 +94,11 @@ a{color:inherit}
 @keyframes rise{from{transform:translateY(106%)}to{transform:none}}
 .opt{display:block;width:100%;text-align:left;padding:16px 18px;background:var(--glass);border:1px solid var(--edge);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);font-size:18.5px;font-weight:500;line-height:1.2;animation:optin .6s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(.25s + var(--i,0) * 80ms);transition:background .25s,color .25s,transform .25s,opacity .3s}
 @keyframes optin{from{opacity:0;transform:translateY(14px)}}
-.opt:hover{background:rgba(251,246,238,.16)}
+@media (hover:hover){.opt:hover{background:rgba(251,246,238,.16)}.main:hover{background:#fff}.card.pick:hover img{filter:grayscale(.3)}}
 .opt.chosen{background:var(--white);color:var(--ink);transform:scale(1.015)}
 .opt.gone{opacity:0;transform:translateY(8px)}
 .main{display:block;width:100%;padding:17px 18px;background:var(--white);color:var(--ink);font-size:18.5px;font-weight:600;text-align:center;transition:transform .2s,background .2s;animation:optin .6s .3s cubic-bezier(.2,.8,.2,1) both}
-.main:hover{background:#fff}.main:active{transform:scale(.98)}
+.main:active{transform:scale(.98)}
 .main.pay{background:var(--stamp);color:#fff;font-size:20px;padding:19px 18px;animation:optin .6s .3s both,payglow 1.7s 1s ease-in-out infinite}
 @keyframes payglow{50%{box-shadow:0 0 0 7px rgba(181,39,47,.3)}}
 .star{width:1.12em;height:1.12em;margin-left:.24em;vertical-align:-.2em;fill:#ffc53d;stroke:#ffc53d;stroke-width:2.2;stroke-linejoin:round}
@@ -148,7 +148,6 @@ a{color:inherit}
 .card small{display:block;font-size:12.5px;line-height:1.18;color:var(--dim);margin-top:3px}
 .card .unk{position:absolute;inset:0;display:grid;place-items:center;padding-bottom:24%;font:800 104px/1 var(--poster);color:rgba(251,246,238,.2)}
 .card.pick{outline:1px solid var(--edge);outline-offset:-1px}
-.card.pick:hover img{filter:grayscale(.3)}
 .card.out{cursor:default}
 .card.out img{filter:grayscale(1) brightness(.34)}
 .card .no{position:absolute;z-index:2;left:50%;top:40%;padding:5px 11px 6px;border:3px solid var(--stamp);color:#ff6a60;background:rgba(9,7,7,.5);font:800 27px/1 var(--poster);text-transform:uppercase;white-space:nowrap;transform:translate(-50%,-50%) rotate(-9deg);animation:slam .36s cubic-bezier(.3,1.7,.5,1) both}
@@ -306,6 +305,11 @@ function hush(){VO.gen=(VO.gen||0)+1;if(VO.cur){try{VO.cur.stop()}catch(_){}VO.c
 function speak(text){const key=text.replace(/\*/g,'').trim(),d=on&&VO.map&&VO.buf[VO.map[key]];if(!d)return null;const gen=VO.gen;
   voQ=voQ.then(async()=>{if(!on||gen!==VO.gen)return;const n=ac.createBufferSource();n.buffer=d;n.connect(ac.destination);n.start();VO.cur=n;await sleep(d.duration*1000+280);VO.cur=null});return voQ}
 
+/* На телефоне кнопка срабатывает с первого касания: не ждём синтетический клик */
+let touch=null;
+document.addEventListener('touchstart',e=>{const t=e.changedTouches[0];touch={x:t.clientX,y:t.clientY}},{passive:true,capture:true});
+document.addEventListener('touchend',e=>{const b=e.target.closest&&e.target.closest('button');if(!b||b.disabled||!touch)return;const t=e.changedTouches[0];if(Math.hypot(t.clientX-touch.x,t.clientY-touch.y)>14)return;e.preventDefault();b.click()},{passive:false,capture:true});
+
 /* Нажатия и субтитры */
 let tapR=null;
 const tap=()=>new Promise(r=>tapR=r);
@@ -455,7 +459,7 @@ async function game(){
   await climax()}
 
 /* Покупка: в Telegram счёт на звёзды создаёт сервер бота, в макете оплата условная */
-async function buy(){if(!(TG&&API))return 'demo';try{const r=await fetch(API+'/invoice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:TG.initData})}),{link,paid}=await r.json();if(paid)return true;if(!link)return false;return new Promise(res=>TG.openInvoice(link,st=>res(st==='paid')))}catch(_){return false}}
+async function buy(){if(!(TG&&API))return 'demo';let r;try{r=await fetch(API+'/invoice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:TG.initData})})}catch(_){return 'net'}if(r.status===401)return 'auth';const {link,paid}=await r.json().catch(()=>({}));if(paid)return true;if(!link)return 'server';return new Promise(res=>TG.openInvoice(link,st=>res(st==='paid'?true:st==='cancelled'?'cancelled':'failed')))}
 
 /* Кульминация и оплата: часы стоят, никакого обратного отсчёта */
 async function climax(){
@@ -468,7 +472,7 @@ async function climax(){
   const no=el('button','quiet','Не сейчас');no.type='button';
   const law=el('button','quiet fine','Нажимая кнопку, вы принимаете условия покупки');law.type='button';law.onclick=terms;
   pay.onclick=async()=>{pay.disabled=true;track('pay_tap');const r=await buy();
-    if(r===false){pay.disabled=false;m.textContent='Оплата не прошла. Дело подождёт вас здесь.';return}
+    if(r!==true&&r!=='demo'){pay.disabled=false;track('pay_fail_'+r);m.textContent=r==='cancelled'?'Вы закрыли оплату. Дело подождёт вас здесь.':r==='failed'?'Telegram не принял оплату. Проверьте баланс звёзд и попробуйте ещё раз.':'Не удалось открыть оплату. Попробуйте ещё раз или напишите боту /paysupport.';return}
     if(r==='demo'){m.textContent='Это макет: звёзды не списываются.';await sleep(1300)}
     track('pay_ok');savePut(null);p.remove();heart(false);ending()};
   no.onclick=()=>{track('decline');p.remove();heart(false);almost()};p.append(pay,m,law,no)}
